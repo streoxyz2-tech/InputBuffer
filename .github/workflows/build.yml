@@ -1,0 +1,68 @@
+name: Build Binaries
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: Windows
+            os: windows-latest
+          - name: macOS
+            os: macos-latest
+          - name: Android32
+            os: ubuntu-latest
+            target: Android32
+          - name: Android64
+            os: ubuntu-latest
+            target: Android64
+          - name: iOS
+            os: macos-latest
+            target: iOS
+
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Geode's SDK pulls in fmt 11.0.2, whose consteval code doesn't compile on
+      # clang 20+ (Windows, Android, macOS runners all hit this now).
+      # Fix: grab the same fmt version, force FMT_USE_CONSTEVAL to 0, and tell CPM
+      # to use that copy instead of downloading its own.
+      - name: Patch fmt
+        shell: bash
+        run: |
+          git clone --depth 1 --branch 11.0.2 https://github.com/fmtlib/fmt.git fmt-patched
+          sed -i.bak -E 's/(define FMT_USE_CONSTEVAL) 1/\1 0/' fmt-patched/include/fmt/base.h
+          echo "--- FMT_USE_CONSTEVAL lines after patch ---"
+          grep -n "FMT_USE_CONSTEVAL" fmt-patched/include/fmt/base.h
+
+      - name: Build the mod
+        uses: geode-sdk/build-geode-mod@main
+        with:
+          bindings: geode-sdk/bindings
+          bindings-ref: main
+          combine: true
+          target: ${{ matrix.config.target }}
+          configure-args: -DCPM_fmt_SOURCE=${{ replace(github.workspace, '\', '/') }}/fmt-patched
+
+  package:
+    name: Package builds
+    runs-on: ubuntu-latest
+    needs: ['build']
+
+    steps:
+      - uses: geode-sdk/build-geode-mod/combine@main
+        id: build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Build Output
+          path: ${{ steps.build.outputs.build-output }}
