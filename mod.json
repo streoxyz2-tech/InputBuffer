@@ -1,0 +1,30 @@
+{
+	"geode": "4.0.0",
+	"gd": {
+		"win": "2.2074",
+		"android": "2.2074",
+		"mac": "2.2074",
+		"ios": "2.2074"
+	},
+	"id": "yourname.input-delay",
+	"name": "Input Delay",
+	"version": "v1.0.0",
+	"developer": "yourname",
+	"description": "Delays every click by a set number of physics ticks, so slightly-early clicks land on the right frame.",
+	"settings": {
+		"enabled": {
+			"type": "bool",
+			"name": "Enabled",
+			"default": true
+		},
+		"delay-ticks": {
+			"type": "int",
+			"name": "Delay (ticks)",
+			"description": "How many physics ticks to hold each input back. At 240 TPS, 1 tick is about 4.17 ms.",
+			"default": 2,
+			"min": 2,
+			"max": 16,
+			"control": { "slider": true }
+		}
+	}
+}
